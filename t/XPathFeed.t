@@ -167,6 +167,17 @@ sub _scheme : Test(5) {
     $xpf->clean;
 }
 
+sub _xpath : Test(4) {
+    my $self = shift;
+
+    is XPathFeed::xpath('id("hoge")'), 'id("hoge")';
+    is XPathFeed::xpath('string-length("foo")'), 'string-length("foo")';
+    is XPathFeed::xpath('//p/a'), '//p/a';
+
+    is XPathFeed::xpath('ul#hoge > li.huga'),
+        q{//ul[@id='hoge']/li[contains(concat(' ', normalize-space(@class), ' '), ' huga ')]};
+}
+
 __PACKAGE__->runtests;
 
 1;

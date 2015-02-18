@@ -298,9 +298,9 @@ sub DESTROY {
 
 sub xpath {
     # xpath || css selector を xpath に変換する
-    # copy from Web::Scraper
+    # based on Web::Scraper
     my $exp = shift;
-    my $xpath = $exp =~ m!^(?:/|id\()! ? $exp : HTML::Selector::XPath::selector_to_xpath($exp);
+    my $xpath = $exp =~ m!^(?:/|[a-z][a-z-]*[a-z]\()! ? $exp : HTML::Selector::XPath::selector_to_xpath($exp);
     decode_utf8($xpath);
 }
 
