@@ -199,8 +199,8 @@ sub list {
             my $xpath = $self->$method() || $DEFAULT_XPATH_ITEM->{$key} or next;
             $item->{$key} = eval {
                 local $SIG{__WARN__} = sub { };
-                my @nodes = $tree->findnodes(xpath($xpath));
-                extract($nodes[0], $key, $self->uri);
+                my $nodes = $tree->findnodes(xpath($xpath));
+                extract($nodes, $key, $self->uri);
             };
             $item->{html} = $node->as_XML;
         }
@@ -305,15 +305,22 @@ sub xpath {
 }
 
 sub extract {
-    my ($node, $key, $uri) = @_;
-    if (blessed($node) && $node->isa('HTML::TreeBuilder::XPath::Attribute')) {
-        if (is_link_element($node->getParentNode, $node->getName)) {
-            URI->new_abs($node->getValue, $uri);
+    my ($result, $key, $uri) = @_;
+    $result = $result->[0] if ($result->isa('XML::XPathEngine::NodeSet'));
+    if ($result->isa('HTML::TreeBuilder::XPath::Attribute')) {
+        if (is_link_element($result->getParentNode, $result->getName)) {
+            return URI->new_abs($result->getValue, $uri);
         } else {
-            $node->getValue;
+            return $result->getValue;
         }
-    } elsif (blessed($node) && $node->can('as_text')) {
-        $node->as_text;
+    } elsif ($result->can('as_text')) {
+        return $result->as_text;
+    } elsif ($result->can('getValue')) { # HTML::TreeBuilder::XPath::TextNode
+        return $result->getValue;
+    } elsif ($result->can('to_literal')) { # XML::XPathEngine::Boolean
+        return $result->to_literal;
+    } elsif ($result->can('value')) { # XML::XPathEngine::(Literal|Number)
+        return $result->value;
     }
 }
 
