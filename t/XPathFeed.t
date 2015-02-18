@@ -88,31 +88,57 @@ sub _tree : Tests { local $TODO = 'TODO' }
 sub _list : Test(5) {
     my $self = shift;
 
-    no warnings 'redefine';
-    local *LWP::UserAgent::request = sub {
-        return HTTP::Response->new(
-            200,
-            'OK',
-            HTTP::Headers->new(Content_Type => 'text/html; charset=utf-8'),
-            '<html><head></head><body><ul><li><a href="./hoge">ほげ</a></li><li><a href="./fuga">ふが</a></li></ul></body></html>'
+    subtest 'basic' => sub {
+        no warnings 'redefine';
+        local *LWP::UserAgent::request = sub {
+            return HTTP::Response->new(
+                200,
+                'OK',
+                HTTP::Headers->new(Content_Type => 'text/html; charset=utf-8'),
+                '<html><head></head><body><ul><li><a href="./hoge">ほげ</a></li><li><a href="./fuga">ふが</a></li></ul></body></html>'
+            );
+        };
+
+        my $xpf = XPathFeed->new(
+            url        => 'http://hogehoge.com/_list',
+            xpath_list => 'ul li',
         );
+        my $list = $xpf->list;
+        is $list->[0]->{node}->as_XML_compact,
+            decode_utf8('<li><a href="./hoge">ほげ</a></li>');
+        is $list->[0]->{title}, decode_utf8('ほげ');
+        is $list->[0]->{link}, decode_utf8('http://hogehoge.com/hoge');
+
+        is $list->[1]->{node}->as_XML_compact,
+            decode_utf8('<li><a href="./fuga">ふが</a></li>');
+        is $list->[1]->{link}, decode_utf8('http://hogehoge.com/fuga');
+
+        $xpf->clean;
     };
 
-    my $xpf = XPathFeed->new(
-        url        => 'http://hogehoge.com/_list',
-        xpath_list => 'ul li',
-    );
-    my $list = $xpf->list;
-    is $list->[0]->{node}->as_XML_compact,
-        decode_utf8('<li><a href="./hoge">ほげ</a></li>');
-    is $list->[0]->{title}, decode_utf8('ほげ');
-    is $list->[0]->{link}, decode_utf8('http://hogehoge.com/hoge');
+    subtest 'complex xpath' => sub {
+        no warnings 'redefine';
+        local *LWP::UserAgent::request = sub {
+            return HTTP::Response->new(
+                200,
+                'OK',
+                HTTP::Headers->new(Content_Type => 'text/html; charset=utf-8'),
+                '<html><head></head><body><ul><li><a href="./hoge" style="background-image: url(http://hogehoge.com/thumbnail.jpg);">ほげ<img src="./new.png"></a></li></ul></body></html>'
+            );
+        };
 
-    is $list->[1]->{node}->as_XML_compact,
-        decode_utf8('<li><a href="./fuga">ふが</a></li>');
-    is $list->[1]->{link}, decode_utf8('http://hogehoge.com/fuga');
+        my $xpf = XPathFeed->new(
+            url              => 'http://hogehoge.com/_xpath_literals',
+            xpath_list       => 'ul li',
+            xpath_item_title => '//a/text()',
+            xpath_item_image => 'substring-before(substring-after(//a/@style, "background-image: url("), ")"',
+        );
+        my $list = $xpf->list;
+        is $list->[0]->{title}, decode_utf8('ほげ');
+        is $list->[0]->{image}, 'http://hogehoge.com/thumbnail.jpg';
 
-    $xpf->clean;
+        $xpf->clean;
+    };
 }
 
 sub _search : Test(3) {
