@@ -16,7 +16,7 @@ use URI;
 use URI::Escape qw(uri_escape);
 use XML::RSS;
 
-our ($UserAgent, $Cache, $BaseURI);
+our ($UserAgent, $Cache);
 
 our $EXPIRE = 10 * 60; # 10分
 
@@ -44,6 +44,7 @@ __PACKAGE__->mk_classdata(
 __PACKAGE__->mk_accessors(
     @{__PACKAGE__->params},
     qw{
+        base_uri
         error
         create
     },
@@ -57,22 +58,15 @@ sub new {
 
 sub new_from_query {
     my ($class, $q) = @_;
-    my $instance = $class->new(
-        map {
-            $_ => $q->param($_) || '',
-        } @{$class->params},
-    );
-    my $base_uri = $q->env->{'psgi.url_scheme'}
+    my $fields = {map {
+        $_ => $q->param($_) || '',
+    } @{$class->params}};
+    $fields->{base_uri} =
+        $q->env->{'psgi.url_scheme'}
         . '://'
         . ($q->env->{HTTP_HOST} || $q->env->{SERVER_NAME})
         . $q->env->{SCRIPT_NAME};
-    $instance->base_uri($base_uri);
-    $instance;
-}
-
-sub base_uri {
-    my $self = shift;
-    $BaseURI ||= shift;
+    $class->new($fields);
 }
 
 sub ua {
