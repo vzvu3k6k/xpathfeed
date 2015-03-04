@@ -16,7 +16,7 @@ use URI;
 use URI::Escape qw(uri_escape);
 use XML::RSS;
 
-our ($UserAgent, $Cache);
+our ($UserAgent, $Cache, $BaseURI);
 
 our $EXPIRE = 10 * 60; # 10分
 
@@ -57,11 +57,22 @@ sub new {
 
 sub new_from_query {
     my ($class, $q) = @_;
-    $class->new(
+    my $instance = $class->new(
         map {
             $_ => $q->param($_) || '',
         } @{$class->params},
     );
+    my $base_uri = $q->env->{'psgi.url_scheme'}
+        . '://'
+        . ($q->env->{HTTP_HOST} || $q->env->{SERVER_NAME})
+        . $q->env->{SCRIPT_NAME};
+    $instance->base_uri($base_uri);
+    $instance;
+}
+
+sub base_uri {
+    my $self = shift;
+    $BaseURI ||= shift;
 }
 
 sub ua {
@@ -270,8 +281,15 @@ sub feed {
     };
 }
 
-sub page_uri { shift->add_query_params(URI->new('/')) }
-sub feed_uri { shift->add_query_params(URI->new('/feed')) }
+sub page_uri {
+    my $self = shift;
+    $self->add_query_params(URI->new($self->base_uri . '/'));
+}
+
+sub feed_uri {
+    my $self = shift;
+    $self->add_query_params(URI->new($self->base_uri . '/feed'));
+}
 
 sub add_query_params {
     my $self = shift;
