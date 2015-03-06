@@ -78,7 +78,7 @@ get '/feed' => sub {
 
 builder {
     enable 'Plack::Middleware::Static',
-        path => qr{^/(?:images|css|js)/},
+        path => qr{^/(?:images|css|js)/|^/robots\.txt$},
         root => $root->subdir('static');
 
     enable 'Plack::Middleware::ReverseProxy';
