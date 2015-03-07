@@ -57,6 +57,7 @@ get '/frame' => sub {
         [
             'Content-Type'    => 'text/html',
             'X-Frame-Options' => 'SAMEORIGIN',
+            'X-Robots-Tag'    => 'none',
         ],
         [$xpf->frame_content],
     );
