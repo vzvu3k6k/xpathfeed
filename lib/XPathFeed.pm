@@ -205,7 +205,7 @@ sub list {
                 local $SIG{__WARN__} = sub { };
                 my @nodes = $tree->findnodes(xpath($xpath));
                 extract($nodes[0], $key, $self->uri);
-            };
+            } // '';
             $item->{html} = $node->as_XML;
         }
         push @{$self->{list}}, $item;
